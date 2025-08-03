@@ -1,0 +1,4 @@
+name: CoralClans
+version: '${version}'
+main: it.mattiolservices.coralclans.CoralClans
+api-version: '1.21'
