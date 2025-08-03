@@ -1,4 +1,8 @@
 name: CoralClans
 version: '${version}'
-main: it.mattiolservices.coralclans.CoralClans
+main: it.mattiolservices.coralclans.bootstrap.ClansPlugin
 api-version: '1.21'
+depend:
+  - PlaceholderAPI
+  - WorldGuard
+author: "AyoMattiol"

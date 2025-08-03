@@ -1,0 +1,9 @@
+Clans:
+  invite-expiry: 1 #Invitation time (in minutes)
+  region-size: 100 #100 is 100x100, put 200 for 200x200
+  default-mob-spawning: false
+  default-pvp: false
+  default-build: true
+
+
+config-version: 1
