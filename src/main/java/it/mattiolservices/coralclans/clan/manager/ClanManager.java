@@ -298,7 +298,7 @@ public class ClanManager implements Manager {
             playerInvites.put(invitedUuid, invites);
             return true;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Errore durante la creazione dell'invito al clan", e);
+            LOGGER.log(Level.SEVERE, "Si è verificato un errore nella creazione dell'invito", e);
             return false;
         }
     }
@@ -310,12 +310,6 @@ public class ClanManager implements Manager {
                 boolean removed = invites.remove(clanId) != null;
                 if (invites.isEmpty()) {
                     playerInvites.invalidate(invitedUuid);
-
-                    Player player = Bukkit.getPlayer(UUID.fromString(invitedUuid));
-                    if (player != null && player.isOnline()) {
-                        player.sendMessage(ChatColor.GRAY + "Il tuo invito al clan è stato utilizzato.");
-                    }
-
                 } else {
                     playerInvites.put(invitedUuid, invites);
                 }
@@ -323,7 +317,7 @@ public class ClanManager implements Manager {
             }
             return false;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Errore durante l'eliminazione dell'invito", e);
+            LOGGER.log(Level.SEVERE, "Si è verificato un errore l'eliminazione dell'invito", e);
             return false;
         }
     }
