@@ -105,7 +105,7 @@ public class ClanManager implements Manager {
                     throw e;
                 }
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error creating clan", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di creare il clan", e);
                 return Optional.empty();
             }
         });
@@ -129,7 +129,7 @@ public class ClanManager implements Manager {
                 return deleted;
 
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error deleting clan", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di eliminare il clan ", e);
                 return false;
             }
         });
@@ -149,7 +149,7 @@ public class ClanManager implements Manager {
                     }
                 }
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error getting clan by name", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di recapitare il clan dal nome", e);
             }
             return Optional.empty();
         });
@@ -173,7 +173,7 @@ public class ClanManager implements Manager {
                     }
                 }
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error getting player clan", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di recapitare il clan del giocatore", e);
             }
             return Optional.empty();
         });
@@ -195,7 +195,7 @@ public class ClanManager implements Manager {
                 return stmt.executeUpdate() > 0;
 
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error setting clan home", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di settare la home del clan ", e);
                 return false;
             }
         });
@@ -228,7 +228,7 @@ public class ClanManager implements Manager {
                 return added;
 
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error adding member", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di aggiungere il giocatore al clan ", e);
                 return false;
             }
         });
@@ -253,7 +253,7 @@ public class ClanManager implements Manager {
                 return removed;
 
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error removing member", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di rimuovere il giocatore dal clan ", e);
                 return false;
             }
         });
@@ -274,7 +274,7 @@ public class ClanManager implements Manager {
                     }
                 }
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error getting clan members", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di recapitare i membri del clan", e);
             }
             return members;
         });
@@ -287,7 +287,7 @@ public class ClanManager implements Manager {
                     .put(clanId, invite);
             return true;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error creating invite", e);
+            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di creare l'invito al clan ", e);
             return false;
         }
     }
@@ -304,7 +304,7 @@ public class ClanManager implements Manager {
             }
             return false;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error deleting invite", e);
+            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di eliminare l'invito ", e);
             return false;
         }
     }
@@ -327,7 +327,7 @@ public class ClanManager implements Manager {
 
             return validInvites;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error getting player invites", e);
+            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di prendere gli inviti al clan ", e);
             return new ArrayList<>();
         }
     }
@@ -411,7 +411,7 @@ public class ClanManager implements Manager {
 
                 String clanTag = getClanTag(conn, clanId);
                 if (clanTag == null) {
-                    LOGGER.warning("Could not find clan with ID: " + clanId);
+                    LOGGER.warning("Si è verificato un errore nel tentativo di prendere la tag del clan con id: " + clanId);
                     return false;
                 }
 
@@ -419,7 +419,7 @@ public class ClanManager implements Manager {
 
                 World bukkitWorld = Bukkit.getWorld(worldName);
                 if (bukkitWorld == null) {
-                    LOGGER.warning("World not found: " + worldName);
+                    LOGGER.warning("Si è verificato un errore nel tentativo di recapitare il mondo: " + worldName);
                     return false;
                 }
 
@@ -427,12 +427,12 @@ public class ClanManager implements Manager {
                 RegionManager regionManager = WorldGuard.getInstance().getPlatform().getRegionContainer().get(world);
 
                 if (regionManager == null) {
-                    LOGGER.warning("Could not get RegionManager for world: " + worldName);
+                    LOGGER.warning("Si è verificato un errore nel tentativo di recapitare il RegionManager del mondo: " + worldName);
                     return false;
                 }
 
                 if (regionManager.hasRegion(regionName)) {
-                    LOGGER.info("Region already exists: " + regionName);
+                    LOGGER.info("La region esisite già: " + regionName);
                     return true;
                 }
 
@@ -449,12 +449,10 @@ public class ClanManager implements Manager {
                 regionManager.addRegion(region);
 
                 saveRegionToDatabase(conn, clanId, worldName, regionName, minX, minZ, maxX, maxZ);
-
-                LOGGER.info("Successfully created region: " + regionName + " for clan ID: " + clanId);
                 return true;
 
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error creating clan region for clan ID: " + clanId, e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di creare la region al clan con id: " + clanId, e);
                 return false;
             }
         });
@@ -539,19 +537,17 @@ public class ClanManager implements Manager {
                 region.setFlag(Flags.MOB_SPAWNING, allowMobSpawning ? StateFlag.State.ALLOW : StateFlag.State.DENY);
                 region.setFlag(Flags.PVP, allowPvP ? StateFlag.State.ALLOW : StateFlag.State.DENY);
                 region.setFlag(Flags.BUILD, allowBuild ? StateFlag.State.ALLOW : StateFlag.State.DENY);
-
-                LOGGER.info("Updated permissions for region: " + regionName);
                 return true;
 
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error updating clan region permissions for clan ID: " + clanId, e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di aggiornare i permessi della region del clan con id: " + clanId, e);
                 return false;
             }
         });
     }
 
 
-    private String getClanTag(Connection conn, int clanId) throws SQLException {
+    public String getClanTag(Connection conn, int clanId) throws SQLException {
         String sql = "SELECT tag FROM clans WHERE id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, clanId);
@@ -608,7 +604,7 @@ public class ClanManager implements Manager {
         }
     }
 
-    private Optional<ClanStructure> getClanById(int clanId) {
+    public Optional<ClanStructure> getClanById(int clanId) {
         String sql = "SELECT * FROM clans WHERE id = ?";
 
         try (Connection conn = DatabaseManager.get().getConnection();
@@ -621,8 +617,97 @@ public class ClanManager implements Manager {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error getting clan by ID", e);
+            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo il clan id! ", e);
         }
         return Optional.empty();
+    }
+
+    public String getClanTagSync(String playerUuid) {
+        try {
+            Optional<ClanStructure> clanOpt = getPlayerClan(playerUuid).get();
+            if (clanOpt.isPresent()) {
+                return clanOpt.get().tag();
+            }
+            return "";
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Si è verificato un errore nel tentativo di recapitare la tag del giocatore " + playerUuid, e);
+            return "";
+        }
+    }
+
+    public String getClanNameSync(String playerUuid) {
+        try {
+            Optional<ClanStructure> clanOpt = getPlayerClan(playerUuid).get();
+            if (clanOpt.isPresent()) {
+                return clanOpt.get().name();
+            }
+            return "";
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Si è verificato un errore nel tentativo di recapitare il nome del clan del giocatore " + playerUuid, e);
+            return "";
+        }
+    }
+
+    public CompletableFuture<String> getPlayerClanRole(String playerUuid) {
+        return DatabaseManager.get().supplyAsync(() -> {
+            String sql = """
+            SELECT role FROM clan_members 
+            WHERE player_uuid = ?
+        """;
+
+            try (Connection conn = DatabaseManager.get().getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+                stmt.setString(1, playerUuid);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("role");
+                    }
+                }
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di recapitare il ruolo del giocatore", e);
+            }
+            return "";
+        });
+    }
+
+    public String getPlayerClanRoleSync(String playerUuid) {
+        try {
+            return getPlayerClanRole(playerUuid).get();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Si è verificato un errore nel tentativo di recapitare il ruolo del giocatore" + playerUuid, e);
+            return "";
+        }
+    }
+
+    public CompletableFuture<Integer> getPlayerClanOnlineMembers(String playerUuid) {
+        return getPlayerClan(playerUuid).thenCompose(clanOpt -> {
+            if (clanOpt.isEmpty()) {
+                return CompletableFuture.completedFuture(0);
+            }
+
+            return getClanMembers(clanOpt.get().id()).thenApply(members -> {
+                int onlineCount = 0;
+                for (ClanMemberStructure member : members) {
+                    try {
+                        UUID memberUuid = UUID.fromString(member.playerUuid());
+                        if (Bukkit.getPlayer(memberUuid) != null) {
+                            onlineCount++;
+                        }
+                    } catch (IllegalArgumentException e) {
+                    }
+                }
+                return onlineCount;
+            });
+        });
+    }
+
+    public String getPlayerClanOnlineMembersSync(String playerUuid) {
+        try {
+            return String.valueOf(getPlayerClanOnlineMembers(playerUuid).get());
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Si è verificato un errore nel tentativo di recapitare gli online del clan " + playerUuid, e);
+            return "0";
+        }
     }
 }
