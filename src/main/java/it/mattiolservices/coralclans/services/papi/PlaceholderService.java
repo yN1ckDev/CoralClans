@@ -36,7 +36,7 @@ public class PlaceholderService extends PlaceholderExpansion {
             case "player_role":
                 return ClanManager.get().getPlayerClanRoleSync(player.getUniqueId().toString());
 
-            case "clan_online_members":
+            case "clan_members_online":
                 return ClanManager.get().getPlayerClanOnlineMembersSync(player.getUniqueId().toString());
 
             default:
