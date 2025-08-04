@@ -10,6 +10,8 @@ import it.mattiolservices.coralclans.storage.DatabaseManager;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.WorldGuard;
@@ -19,9 +21,12 @@ import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import java.sql.*;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,24 +44,34 @@ public class ClanManager implements Manager {
     private static final Logger LOGGER = Logger.getLogger(ClanManager.class.getName());
     private static ClanManager INSTANCE;
 
-    private Map<String, Map<Integer, ClanInviteData>> playerInvites;
-    private Map<String, Boolean> playersInClanChat;
+    private Cache<String, Map<Integer, ClanInviteData>> playerInvites;
 
-    @Getter
-    private static final int INVITE_EXPIRATION_HOURS = 24;
+    private Cache<String, Boolean> clanChatCache;
 
     @Override
     public void start() {
         INSTANCE = this;
 
-        this.playerInvites = new ConcurrentHashMap<>();
-        this.playersInClanChat = new ConcurrentHashMap<>();
+        this.playerInvites = Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofMinutes(2))
+                .maximumSize(10_000)
+                .build();
+
+        this.clanChatCache = Caffeine.newBuilder()
+                .expireAfterAccess(Duration.ofMinutes(30))
+                .maximumSize(5000)
+                .build();
     }
 
     @Override
     public void stop() {
-        playerInvites.clear();
-        playersInClanChat.clear();
+        if(playerInvites != null) {
+            playerInvites.invalidateAll();
+        }
+
+        if (clanChatCache != null) {
+            clanChatCache.invalidateAll();
+        }
     }
 
     public static ClanManager get() {
@@ -122,8 +137,7 @@ public class ClanManager implements Manager {
                 boolean deleted = stmt.executeUpdate() > 0;
 
                 if (deleted) {
-                    playerInvites.values().forEach(invites -> invites.remove(clanId));
-                    playerInvites.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+                    playerInvites.asMap().keySet().removeIf(key -> key.startsWith(clanId + ":"));
                 }
 
                 return deleted;
@@ -134,6 +148,7 @@ public class ClanManager implements Manager {
             }
         });
     }
+
 
     public CompletableFuture<Optional<ClanStructure>> getClanByName(String name) {
         return DatabaseManager.get().supplyAsync(() -> {
@@ -216,13 +231,7 @@ public class ClanManager implements Manager {
                 boolean added = stmt.executeUpdate() > 0;
 
                 if (added) {
-                    Map<Integer, ClanInviteData> invites = playerInvites.get(playerUuid);
-                    if (invites != null) {
-                        invites.remove(clanId);
-                        if (invites.isEmpty()) {
-                            playerInvites.remove(playerUuid);
-                        }
-                    }
+                    ClanManager.get().deleteInvite(clanId, playerUuid);
                 }
 
                 return added;
@@ -233,6 +242,7 @@ public class ClanManager implements Manager {
             }
         });
     }
+
 
     public CompletableFuture<Boolean> removeMember(int clanId, String playerUuid) {
         return DatabaseManager.get().supplyAsync(() -> {
@@ -247,7 +257,7 @@ public class ClanManager implements Manager {
                 boolean removed = stmt.executeUpdate() > 0;
 
                 if (removed) {
-                    playersInClanChat.remove(playerUuid);
+                    clanChatCache.invalidate(playerUuid);
                 }
 
                 return removed;
@@ -283,66 +293,76 @@ public class ClanManager implements Manager {
     public boolean createInvite(int clanId, String invitedUuid, String invitedName, String inviterUuid) {
         try {
             ClanInviteData invite = new ClanInviteData(clanId, invitedName, inviterUuid);
-            playerInvites.computeIfAbsent(invitedUuid, k -> new ConcurrentHashMap<>())
-                    .put(clanId, invite);
+            Map<Integer, ClanInviteData> invites = playerInvites.get(invitedUuid, k -> new ConcurrentHashMap<>());
+            invites.put(clanId, invite);
+            playerInvites.put(invitedUuid, invites);
             return true;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di creare l'invito al clan ", e);
+            LOGGER.log(Level.SEVERE, "Errore durante la creazione dell'invito al clan", e);
             return false;
         }
     }
 
     public boolean deleteInvite(int clanId, String invitedUuid) {
         try {
-            Map<Integer, ClanInviteData> invites = playerInvites.get(invitedUuid);
+            Map<Integer, ClanInviteData> invites = playerInvites.getIfPresent(invitedUuid);
             if (invites != null) {
                 boolean removed = invites.remove(clanId) != null;
                 if (invites.isEmpty()) {
-                    playerInvites.remove(invitedUuid);
+                    playerInvites.invalidate(invitedUuid);
+
+                    Player player = Bukkit.getPlayer(UUID.fromString(invitedUuid));
+                    if (player != null && player.isOnline()) {
+                        player.sendMessage(ChatColor.GRAY + "Il tuo invito al clan è stato utilizzato.");
+                    }
+
+                } else {
+                    playerInvites.put(invitedUuid, invites);
                 }
                 return removed;
             }
             return false;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di eliminare l'invito ", e);
+            LOGGER.log(Level.SEVERE, "Errore durante l'eliminazione dell'invito", e);
             return false;
         }
     }
 
     public List<ClanInviteData> getPlayerInvites(String playerUuid) {
         try {
-            Map<Integer, ClanInviteData> invites = playerInvites.get(playerUuid);
-            if (invites == null) {
-                return new ArrayList<>();
-            }
+            Map<Integer, ClanInviteData> invites = playerInvites.getIfPresent(playerUuid);
+            if (invites == null) return new ArrayList<>();
 
             List<ClanInviteData> validInvites = invites.values().stream()
                     .filter(invite -> !invite.isExpired())
                     .collect(Collectors.toList());
 
             invites.entrySet().removeIf(entry -> entry.getValue().isExpired());
+
             if (invites.isEmpty()) {
-                playerInvites.remove(playerUuid);
+                playerInvites.invalidate(playerUuid);
+            } else {
+                playerInvites.put(playerUuid, invites);
             }
 
             return validInvites;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di prendere gli inviti al clan ", e);
+            LOGGER.log(Level.SEVERE, "Errore durante il recupero degli inviti del clan", e);
             return new ArrayList<>();
         }
     }
 
     public boolean hasInvite(String playerUuid, int clanId) {
-        Map<Integer, ClanInviteData> invites = playerInvites.get(playerUuid);
+        Map<Integer, ClanInviteData> invites = playerInvites.getIfPresent(playerUuid);
         if (invites == null) return false;
 
         ClanInviteData invite = invites.get(clanId);
-        if (invite == null) return false;
-
-        if (invite.isExpired()) {
+        if (invite == null || invite.isExpired()) {
             invites.remove(clanId);
             if (invites.isEmpty()) {
-                playerInvites.remove(playerUuid);
+                playerInvites.invalidate(playerUuid);
+            } else {
+                playerInvites.put(playerUuid, invites);
             }
             return false;
         }
@@ -350,21 +370,30 @@ public class ClanManager implements Manager {
         return true;
     }
 
+
     public boolean toggleClanChat(String playerUuid) {
-        return playersInClanChat.compute(playerUuid, (key, current) ->
-                current == null || !current
-        );
+        Boolean current = clanChatCache.getIfPresent(playerUuid);
+        boolean newState = current == null || !current;
+
+        if (newState) {
+            clanChatCache.put(playerUuid, true);
+        } else {
+            clanChatCache.invalidate(playerUuid);
+        }
+
+        return newState;
     }
 
     public boolean isInClanChat(String playerUuid) {
-        return playersInClanChat.getOrDefault(playerUuid, false);
+        Boolean inChat = clanChatCache.getIfPresent(playerUuid);
+        return inChat != null && inChat;
     }
 
     public void setClanChatMode(String playerUuid, boolean enabled) {
         if (enabled) {
-            playersInClanChat.put(playerUuid, true);
+            clanChatCache.put(playerUuid, true);
         } else {
-            playersInClanChat.remove(playerUuid);
+            clanChatCache.invalidate(playerUuid);
         }
     }
 
@@ -377,12 +406,6 @@ public class ClanManager implements Manager {
         );
     }
 
-    public void cleanupExpiredInvites() {
-        playerInvites.entrySet().removeIf(entry -> {
-            entry.getValue().entrySet().removeIf(inviteEntry -> inviteEntry.getValue().isExpired());
-            return entry.getValue().isEmpty();
-        });
-    }
 
     public CompletableFuture<Boolean> isPlayerInClan(String playerUuid) {
         return getPlayerClan(playerUuid).thenApply(Optional::isPresent);
