@@ -2,6 +2,7 @@ package it.mattiolservices.coralclans.services.manager;
 
 import it.mattiolservices.coralclans.bootstrap.CoralClans;
 import it.mattiolservices.coralclans.clan.manager.ClanManager;
+import it.mattiolservices.coralclans.commands.manager.CommandManager;
 import it.mattiolservices.coralclans.config.ConfigManager;
 import it.mattiolservices.coralclans.storage.DatabaseManager;
 import lombok.Getter;
@@ -31,6 +32,7 @@ public class ManagerService {
         addManager(new DatabaseManager());
         addManager(new ClanManager());
         addManager(new ConfigManager());
+        addManager(new CommandManager());
 
         managers.forEach(Manager::start);
     }
