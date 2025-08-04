@@ -1,4 +1,7 @@
+Messages:
+  clan-chat-message: "&b&lCLAN &8&l• &7"
 
-
+Errors:
+  player-not-in-clan: "&cNon sei in nessun clan!"
 
 config-version: 1
