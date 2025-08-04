@@ -3,6 +3,6 @@ MariaDB: #Database configuration file
   port: 3306
   database: "coralclans"
   username: "root"
-  passowrd: ""
+  password: ""
 
 config-version: 1

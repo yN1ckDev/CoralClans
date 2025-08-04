@@ -1,7 +1,102 @@
 Messages:
-  clan-chat-message: "&b&lCLAN &8&l• &7"
+  clan-chat-message: "&b&lCLAN &8&l• "
+  clan-kicked-owner: "&aHai kickato %player% dal tuo clan!"
+  clan-kicked-member: "&aSei stato kickato dal clan!"
+  clan-disbanded: "&aHai sciolto con successo il clan!"
+  clan-disbaded-members: "&aIl tuo clan è stato sciolto dal Leader."
+  clan-not-found: "&cNon esiste un clan con questo nome!"
+  clan-joined: "&aSei entrato nel clan %name%!"
+  clan-joined-other: "&a%player% si è unito al clan!"
+  already-in-clan: "&cSei già in un clan!"
+  clan-transfer: "&cIn quanto leader, devi sciogliere il clan prima di uscire!"
+  clan-leaved: "&cSei uscito dal clan!"
+  clan-leaved-other: "&c%player% è uscito dal clan!"
+  already-in-clan-other: "&c%player% è già in un clan!"
+  own-role: "&cNon puoi cambiare il tuo ruolo!"
+  promoted: "&a%player% è stato %action%"
+  promoted-self: "&aSei stato %action%"
+  not-found-in-clan: "&cIl giocatore non è stato trovato nel clan!"
+  already-member: "&cIl giocatore è già un Membro!"
+  self-kick: "&cNon puoi kickare te stesso!"
+  already-officer: "&cIl giocatore é già un Officer!"
+  member: "&7retrocesso a Membro"
+  officer: "&7promosso a Officer"
+  not-kick-leader: "&cNon puoi kickare il Leader del clan!"
+  name-format: "&cIl nome del clan deve essere composto da almeno 3 caratteri e massimo 16."
+  tag-format: "&cIl tag del clan deve essere composto da almeno 2 caratteri e massimo 3."
+  clan-already-exist: "&cEsiste gia' un clan con questo nome!"
+  leader-only: "&cSolo il Leader puo' fare questo!"
+  clan-created: "&aHai creato con successo il clan %name% con la Tag %tag%!"
+  no-clan: "&cNon fai parte di nessun clan!"
+  self-invite: "&cNon puoi invitare te stesso!"
+  no-invite: "&cNon hai ricevuto un invito per questo Clan!"
+  no-permission-clan: "&cNon hai i permessi necessari per gestire il clan!"
+  already-invite: "&cHai già inviato un invito a questo giocatore!"
+  clan-invite: "&aHai invitato %player% nel clan"
+  clan-invite-other:
+    - "&6Hai ricevuto un invito per il clan &e%clan%&6 da %sender%!"
+    - "&eUsa &e/clan join %clan%&6 per unirti."
+    - "&7(L'invito scadrà tra 2 minuti)"
+  clan-chat-enabled: "&aClan chat abilitata!"
+  clan-chat-disabled: "&cClan chat disabilitata!"
+  region-claimed: "&aTerritorio claimato! %center_x% | %center_y% nel mondo %world%"
+  unclaimed: "&aTerritorio unclaimato!"
+  home-not-set: "&cHome non settata!"
+  home-tp: "&aTi sei teletrasportato alla home!"
+  home-set: "&aHome impostata con successo!"
+  clan-info:
+    - "&6===== INFO CLAN ====="
+    - "&eNome: &f%name%"
+    - "&eTag: &f[%tag%]"
+    - "&eCreato il: &f%created_at%"
+    - "&eMembri: &f%members%"
+    - "&eLeader: &f%leader%"
+    - "&eOfficers: &f%officer_count%"
+    - "&eHome: &f%x%, %y%, %z% (%world%)"
+    - "&eHome: &7Non impostata"
+    - "&6====================="
+  clan-list:
+    - "&6===== MEMBRI DEL CLAN ====="
+    - "%members_list%"
+    - "&6Totale membri: &f%total_members%"
+    - "&6==========================="
+  
 
-Errors:
-  player-not-in-clan: "&cNon sei in nessun clan!"
+  
+
+Gui:
+  Kick:
+    gui-title: "&cConfermi il Kick?"
+    player-head-title: "&e%player%"  
+    player-head-lore:
+      - "&7HAHAHAHAA"
+      - "&7AHAHHAHAHAHA"
+
+    confirm-block-title: "&a&L✓ CONFERMA"
+    confirm-block-lore:
+      - "&7Clicca per confermare"
+      - "&cAzione irreversibile!"
+
+    cancel-block-title: "&c&L✗ ANNULLA"
+    cancel-block-lore:
+      - "&7Clicca per annullare"
+      - ""  
+  Disband:
+    gui-title: "&cConfermi lo scioglimento?"
+    warning-block-title: "&c&L✗ ATTENZIONE"
+    warning-block-lore:
+      - "&7Sei sicuro di scioglire il clan?"
+      - "&7Sei sicuro di scioglire il clan?"
+
+    confirm-block-title: "&a&L✓ CONFERMA"
+    confirm-block-lore:
+      - "&7Clicca per confermare"
+      - "&cAzione irreversibile!"
+
+    cancel-block-title: "&c&L✗ ANNULLA"
+    cancel-block-lore:
+      - "&7Clicca per annullare"
+      - ""  
+
 
 config-version: 1

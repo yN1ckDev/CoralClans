@@ -37,7 +37,7 @@ public class ClanChatListener implements Listener {
 
                     if (clanOpt.isEmpty()) {
                         Bukkit.getScheduler().runTask(CoralClans.get().getPlugin(), () -> {
-                            player.sendMessage(CoralClans.get().getConfigManager().getMessages().getString("Errors.player-not-in-clan"));
+                            player.sendMessage(CoralClans.get().getConfigManager().getMessages().getString("Messages.no-clan"));
                         });
                         return;
                     }
