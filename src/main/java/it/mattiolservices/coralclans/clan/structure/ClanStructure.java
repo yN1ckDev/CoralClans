@@ -5,6 +5,7 @@ import lombok.With;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @With
 public record ClanStructure(
@@ -30,5 +31,10 @@ public record ClanStructure(
                 rs.getDouble("home_y"),
                 rs.getDouble("home_z")
         );
+    }
+
+    public String getFormattedCreatedAt() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yy - HH");
+        return createdAt.format(formatter);
     }
 }
