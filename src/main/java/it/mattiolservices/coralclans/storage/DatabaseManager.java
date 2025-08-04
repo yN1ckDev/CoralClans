@@ -36,7 +36,7 @@ public class DatabaseManager implements Manager {
             setupExecutor();
             createTablesAsync();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to start Database!", e);
+            LOGGER.log(Level.SEVERE,"Si e' verificato un errore nell'avvio del database!", e);
         }
     }
 
@@ -157,9 +157,8 @@ public class DatabaseManager implements Manager {
                 """);
 
 
-                LOGGER.info("All clan tables created successfully");
             } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error creating tables", e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nella creazione delle tabelle!", e);
             }
         });
     }
