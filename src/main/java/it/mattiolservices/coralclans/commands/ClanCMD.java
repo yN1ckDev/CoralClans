@@ -547,6 +547,70 @@ public class ClanCMD {
         });
     }
 
+    @Subcommand("transfer")
+    @CommandPermission("coralclans.clan.transfer")
+    public void transferLeadership(Player player, @Named("player") String targetName) {
+        clanManager.getPlayerClan(player.getUniqueId().toString()).thenAccept(clanOpt -> {
+            if (clanOpt.isEmpty()) {
+                player.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.no-clan")));
+                return;
+            }
+
+            ClanStructure clan = clanOpt.get();
+
+            if (!clan.leaderUuid().equals(player.getUniqueId().toString())) {
+                player.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.leader-only")));
+                return;
+            }
+
+            clanManager.getClanMembers(clan.id()).thenAccept(members -> {
+                Optional<ClanMemberStructure> targetMember = members.stream()
+                        .filter(member -> member.playerName().equalsIgnoreCase(targetName))
+                        .findFirst();
+
+                if (targetMember.isEmpty()) {
+                    player.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.not-found-in-clan")));
+                    return;
+                }
+
+                ClanMemberStructure target = targetMember.get();
+
+                if (target.playerUuid().equals(player.getUniqueId().toString())) {
+                    player.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.self-transfer")));
+                    return;
+                }
+
+                clanManager.transferLeadership(clan.id(), player.getUniqueId().toString(), target.playerUuid())
+                        .thenAccept(success -> {
+                            if (success) {
+                                player.sendMessage(ChatUtils.translate(
+                                        CoralClans.get().getConfigManager().getMessages().getString("Messages.leadership-transferred")
+                                                .replace("%player%", target.playerName())
+                                ));
+
+                                Player targetPlayer = Bukkit.getPlayer(target.playerUuid());
+                                if (targetPlayer != null) {
+                                    targetPlayer.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.leadership-received").replace("%player%", player.getName())));
+                                }
+
+                                for (ClanMemberStructure member : members) {
+                                    if (!member.playerUuid().equals(player.getUniqueId().toString()) &&
+                                            !member.playerUuid().equals(target.playerUuid())) {
+
+                                        Player memberPlayer = Bukkit.getPlayer(member.playerUuid());
+                                        if (memberPlayer != null) {
+                                            memberPlayer.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.leadership-changed").replace("%old_leader%", player.getName()).replace("%new_leader%", target.playerName())));
+                                        }
+                                    }
+                                }
+                            } else {
+                                player.sendMessage(ChatUtils.translate("&cSi è verificato un errore durante il trasferimento della leadership, contatta l'amministrazione"));
+                            }
+                        });
+            });
+        });
+    }
+
     @Subcommand("info")
     @CommandPermission("coralclans.clan.info")
     public void clanInfo(Player player, @revxrsal.commands.annotation.Optional String clanName) {
@@ -572,11 +636,6 @@ public class ClanCMD {
 
             clanManager.getClanMembers(clan.id()).thenAccept(members -> {
                 List<String> messages = CoralClans.get().getConfigManager().getMessages().getStringList("Messages.clan-info");
-
-                if (messages.isEmpty()) {
-                    player.sendMessage(ChatUtils.translate("&cClan info non settata!"));
-                    return;
-                }
 
                 Optional<ClanMemberStructure> leader = members.stream()
                         .filter(member -> member.role() == ClanRole.LEADER)
@@ -648,11 +707,11 @@ public class ClanCMD {
                     };
 
                     boolean isOnline = Bukkit.getPlayer(member.playerUuid()) != null;
-                    String status = isOnline ? ChatColor.GREEN + "Online" : ChatColor.GRAY + "Offline";
+                    String status = isOnline ? ChatUtils.translate("&aOnline") : ChatUtils.translate("&cOffline");
 
                     membersBuilder.append(roleColor)
                             .append(member.playerName())
-                            .append(ChatColor.GRAY).append(" [")
+                            .append(ChatUtils.translate("&7")).append(" [")
                             .append(member.role().name())
                             .append("] ").append(status)
                             .append("\n");

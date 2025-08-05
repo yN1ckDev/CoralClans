@@ -413,6 +413,149 @@ public class ClanManager implements Manager {
         );
     }
 
+    public CompletableFuture<Boolean> transferLeadership(int clanId, String currentLeaderUuid, String newLeaderUuid) {
+        return DatabaseManager.get().supplyAsync(() -> {
+            try (Connection conn = DatabaseManager.get().getConnection()) {
+                conn.setAutoCommit(false);
+
+                try {
+                    String sql = """
+                    SELECT COUNT(*) FROM clan_members 
+                    WHERE clan_id = ? AND player_uuid = ? AND role = 'LEADER'
+                """;
+
+                    try (PreparedStatement verifyStmt = conn.prepareStatement(sql)) {
+                        verifyStmt.setInt(1, clanId);
+                        verifyStmt.setString(2, currentLeaderUuid);
+
+                        try (ResultSet rs = verifyStmt.executeQuery()) {
+                            if (!rs.next() || rs.getInt(1) == 0) {
+                                conn.rollback();
+                                return false;
+                            }
+                        }
+                    }
+
+                    String verifyMemberSql = """
+                    SELECT COUNT(*) FROM clan_members 
+                    WHERE clan_id = ? AND player_uuid = ?
+                """;
+
+                    try (PreparedStatement verifyStmt = conn.prepareStatement(verifyMemberSql)) {
+                        verifyStmt.setInt(1, clanId);
+                        verifyStmt.setString(2, newLeaderUuid);
+
+                        try (ResultSet rs = verifyStmt.executeQuery()) {
+                            if (!rs.next() || rs.getInt(1) == 0) {
+                                conn.rollback();
+                                return false;
+                            }
+                        }
+                    }
+
+                    String updateClanSql = "UPDATE clans SET leader_uuid = ? WHERE id = ?";
+                    try (PreparedStatement updateClanStmt = conn.prepareStatement(updateClanSql)) {
+                        updateClanStmt.setString(1, newLeaderUuid);
+                        updateClanStmt.setInt(2, clanId);
+                        updateClanStmt.executeUpdate();
+                    }
+
+                    String demoteLeaderSql = """
+                    UPDATE clan_members 
+                    SET role = 'OFFICER' 
+                    WHERE clan_id = ? AND player_uuid = ?
+                """;
+
+                    try (PreparedStatement demoteStmt = conn.prepareStatement(demoteLeaderSql)) {
+                        demoteStmt.setInt(1, clanId);
+                        demoteStmt.setString(2, currentLeaderUuid);
+                        demoteStmt.executeUpdate();
+                    }
+
+                    String promoteLeaderSql = """
+                    UPDATE clan_members 
+                    SET role = 'LEADER' 
+                    WHERE clan_id = ? AND player_uuid = ?
+                """;
+
+                    try (PreparedStatement promoteStmt = conn.prepareStatement(promoteLeaderSql)) {
+                        promoteStmt.setInt(1, clanId);
+                        promoteStmt.setString(2, newLeaderUuid);
+                        promoteStmt.executeUpdate();
+                    }
+
+                    updateRegionOwnership(conn, clanId, currentLeaderUuid, newLeaderUuid);
+
+                    conn.commit();
+                    return true;
+
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                }
+
+            } catch (SQLException e) {
+                return false;
+            }
+        });
+    }
+
+    private void updateRegionOwnership(Connection conn, int clanId, String oldLeaderUuid, String newLeaderUuid) {
+        try {
+            String clanTag = getClanTag(conn, clanId);
+            if (clanTag == null) {
+                return;
+            }
+
+            String regionName = "clan_" + clanTag.toLowerCase() + "_" + clanId;
+
+            String territoryQuery = "SELECT DISTINCT world FROM clan_territories WHERE clan_id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(territoryQuery)) {
+                stmt.setInt(1, clanId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        String worldName = rs.getString("world");
+                        updateWorldRegionOwnership(worldName, regionName, oldLeaderUuid, newLeaderUuid);
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+        }
+    }
+
+    private void updateWorldRegionOwnership(String worldName, String regionName, String oldLeaderUuid, String newLeaderUuid) {
+        try {
+            World bukkitWorld = Bukkit.getWorld(worldName);
+            if (bukkitWorld == null) {
+                return;
+            }
+
+            com.sk89q.worldedit.world.World world = BukkitAdapter.adapt(bukkitWorld);
+            RegionManager regionManager = WorldGuard.getInstance().getPlatform().getRegionContainer().get(world);
+
+            if (regionManager == null) {
+                return;
+            }
+
+            ProtectedRegion region = regionManager.getRegion(regionName);
+            if (region == null) {
+                return;
+            }
+
+            UUID oldLeaderUUID = UUID.fromString(oldLeaderUuid);
+            UUID newLeaderUUID = UUID.fromString(newLeaderUuid);
+
+            region.getOwners().removePlayer(oldLeaderUUID);
+            region.getMembers().addPlayer(oldLeaderUUID);
+
+            region.getMembers().removePlayer(newLeaderUUID);
+            region.getOwners().addPlayer(newLeaderUUID);
+
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Errore durante l'aggiornamento dei permessi della region " + regionName + " nel mondo " + worldName, e);
+        }
+    }
 
     public CompletableFuture<Boolean> createClanRegionAsync(int clanId, String worldName, int centerX, int centerZ,
                                                             boolean allowMobSpawning, boolean allowPvP, boolean allowBuild) {
