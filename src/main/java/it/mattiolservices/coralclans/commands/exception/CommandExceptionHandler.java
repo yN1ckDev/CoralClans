@@ -34,4 +34,9 @@ public class CommandExceptionHandler extends BukkitExceptionHandler {
     public void onMissingArgument(@NotNull MissingArgumentException e, @NotNull BukkitCommandActor actor, @NotNull ParameterNode<BukkitCommandActor, ?> parameter) {
         actor.error(legacyColorize("&cUn parametro richiesto è mancante: &e" + parameter.name() + "&c. Uso corretto: &e/" + parameter.command().usage() + "&c."));
     }
+
+    @HandleException
+    public void onEmptyEntitySelector(EmptyEntitySelectorException e, BukkitCommandActor actor) {
+        actor.error(legacyColorize("&cNon è stata trovata nessuna entità"));
+    }
 }
