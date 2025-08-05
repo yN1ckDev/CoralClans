@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Command("clan")
@@ -186,9 +187,13 @@ public class ClanCMD {
                         })
                         .thenAccept(members -> {
                             for (ClanMemberStructure member : members) {
-                                Player memberPlayer = Bukkit.getPlayer(member.playerUuid());
-                                if (memberPlayer != null && !memberPlayer.equals(player)) {
-                                    memberPlayer.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.clan-joined-other").replace("%player%", player.getName())));
+                                try {
+                                    UUID memberUuid = UUID.fromString(member.playerUuid());
+                                    Player memberPlayer = Bukkit.getPlayer(memberUuid);
+                                    if (memberPlayer != null && !memberPlayer.equals(player)) {
+                                        memberPlayer.sendMessage(ChatUtils.translate(CoralClans.get().getConfigManager().getMessages().getString("Messages.clan-joined-other").replace("%player%", player.getName())));
+                                    }
+                                } catch (IllegalArgumentException e) {
                                 }
                             }
                         });
@@ -706,14 +711,12 @@ public class ClanCMD {
                         case MEMBER -> ChatColor.WHITE;
                     };
 
-                    boolean isOnline = Bukkit.getPlayer(member.playerUuid()) != null;
-                    String status = isOnline ? ChatUtils.translate("&aOnline") : ChatUtils.translate("&cOffline");
 
                     membersBuilder.append(roleColor)
                             .append(member.playerName())
                             .append(ChatUtils.translate("&7")).append(" [")
                             .append(member.role().name())
-                            .append("] ").append(status)
+                            .append("] ")
                             .append("\n");
                 }
 
