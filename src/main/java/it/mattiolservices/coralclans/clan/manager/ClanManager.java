@@ -128,19 +128,41 @@ public class ClanManager implements Manager {
 
     public CompletableFuture<Boolean> deleteClan(int clanId) {
         return DatabaseManager.get().supplyAsync(() -> {
-            String sql = "DELETE FROM clans WHERE id = ?";
+            try (Connection conn = DatabaseManager.get().getConnection()) {
+                String territorySql = "SELECT world FROM clan_territories WHERE clan_id = ?";
+                List<String> worldsToClean = new ArrayList<>();
 
-            try (Connection conn = DatabaseManager.get().getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-                stmt.setInt(1, clanId);
-                boolean deleted = stmt.executeUpdate() > 0;
-
-                if (deleted) {
-                    playerInvites.asMap().keySet().removeIf(key -> key.startsWith(clanId + ":"));
+                try (PreparedStatement territoryStmt = conn.prepareStatement(territorySql)) {
+                    territoryStmt.setInt(1, clanId);
+                    try (ResultSet rs = territoryStmt.executeQuery()) {
+                        while (rs.next()) {
+                            worldsToClean.add(rs.getString("world"));
+                        }
+                    }
                 }
 
-                return deleted;
+                for (String worldName : worldsToClean) {
+                    try {
+                        boolean regionDeleted = deleteClanRegionAsync(clanId, worldName).get();
+                        if (!regionDeleted) {
+                            LOGGER.warning("Si è verificato un errore nel tentativo di eliminare la land: " + worldName);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di eliminare la land del mondo: " + worldName, e);
+                    }
+                }
+
+                String sql = "DELETE FROM clans WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setInt(1, clanId);
+                    boolean deleted = stmt.executeUpdate() > 0;
+
+                    if (deleted) {
+                        playerInvites.asMap().keySet().removeIf(key -> key.startsWith(clanId + ":"));
+                    }
+
+                    return deleted;
+                }
 
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di eliminare il clan ", e);
@@ -647,7 +669,20 @@ public class ClanManager implements Manager {
                 RegionManager regionManager = WorldGuard.getInstance().getPlatform().getRegionContainer().get(world);
 
                 if (regionManager != null) {
-                    regionManager.removeRegion(regionName);
+                    if (regionManager.hasRegion(regionName)) {
+                        regionManager.removeRegion(regionName);
+
+                        try {
+                            regionManager.save();
+                        } catch (Exception e) {
+                            LOGGER.log(Level.SEVERE, "Si è verificato un errore nel salvataggio della Land: " + regionName, e);
+                            return false;
+                        }
+                    } else {
+                        LOGGER.warning("Si è verificato un errore nel tentativo di trovare la region di worldguard: " + regionName);
+                    }
+                } else {
+                    LOGGER.warning("Il RegionManager di WorldGuard è nullo in questo mondo: " + worldName);
                 }
 
                 String sql = "DELETE FROM clan_territories WHERE clan_id = ? AND world = ?";
@@ -657,11 +692,10 @@ public class ClanManager implements Manager {
                     stmt.executeUpdate();
                 }
 
-                LOGGER.info("Successfully deleted region: " + regionName);
                 return true;
 
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error deleting clan region for clan ID: " + clanId, e);
+                LOGGER.log(Level.SEVERE, "Si è verificato un errore nel tentativo di eliminare la region del clan con id: " + clanId, e);
                 return false;
             }
         });
